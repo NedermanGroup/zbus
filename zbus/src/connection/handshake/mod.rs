@@ -53,8 +53,9 @@ impl Authenticated {
         server_guid: Option<OwnedGuid>,
         mechanism: Option<AuthMechanism>,
         bus: bool,
+        impersonate_user_id: Option<usize>,
     ) -> Result<Self> {
-        Client::new(socket, mechanism, server_guid, bus)
+        Client::new(socket, mechanism, server_guid, bus, impersonate_user_id)
             .perform()
             .await
     }
@@ -157,7 +158,7 @@ mod tests {
         let (p0, p1) = create_async_socket_pair();
 
         let guid = OwnedGuid::from(Guid::generate());
-        let client = Client::new(p0.into(), None, Some(guid.clone()), false);
+        let client = Client::new(p0.into(), None, Some(guid.clone()), false, None);
         let server =
             Server::new(p1.into(), guid, Some(Uid::effective().into()), None, None).unwrap();
 

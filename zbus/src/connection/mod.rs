@@ -36,7 +36,7 @@ pub use socket::Socket;
 mod socket_reader;
 use socket_reader::SocketReader;
 
-pub(crate) mod handshake;
+pub mod handshake;
 pub use handshake::AuthMechanism;
 use handshake::Authenticated;
 

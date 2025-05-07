@@ -69,6 +69,7 @@ pub struct Builder<'a> {
     auth_mechanism: Option<AuthMechanism>,
     #[cfg(feature = "bus-impl")]
     unique_name: Option<crate::names::UniqueName<'a>>,
+    impersonate_user_id: Option<usize>,
 }
 
 impl<'a> Builder<'a> {
@@ -184,6 +185,13 @@ impl<'a> Builder<'a> {
     /// Specify the mechanism to use during authentication.
     pub fn auth_mechanism(mut self, auth_mechanism: AuthMechanism) -> Self {
         self.auth_mechanism = Some(auth_mechanism);
+
+        self
+    }
+
+    /// Lets you impersonate a user
+    pub fn impersonate_user_id(mut self, id: usize) -> Self {
+        self.impersonate_user_id = Some(id);
 
         self
     }
@@ -407,6 +415,7 @@ impl<'a> Builder<'a> {
             auth_mechanism: None,
             #[cfg(feature = "bus-impl")]
             unique_name: None,
+            impersonate_user_id: None,
         }
     }
 
@@ -437,8 +446,14 @@ impl<'a> Builder<'a> {
             match self.guid.take() {
                 None => {
                     // SASL Handshake
-                    Authenticated::client(stream, server_guid, self.auth_mechanism, is_bus_conn)
-                        .await
+                    Authenticated::client(
+                        stream,
+                        server_guid,
+                        self.auth_mechanism,
+                        is_bus_conn,
+                        self.impersonate_user_id,
+                    )
+                    .await
                 }
                 Some(guid) => {
                     if !self.p2p {
@@ -466,7 +481,14 @@ impl<'a> Builder<'a> {
             }
 
             #[cfg(not(feature = "p2p"))]
-            Authenticated::client(stream, server_guid, self.auth_mechanism, is_bus_conn).await
+            Authenticated::client(
+                stream,
+                server_guid,
+                self.auth_mechanism,
+                is_bus_conn,
+                self.impersonate_user_id,
+            )
+            .await
         }
     }
 

@@ -17,6 +17,7 @@ pub struct Client {
     common: Common,
     server_guid: Option<OwnedGuid>,
     bus: bool,
+    user_id: Result<String>,
 }
 
 impl Client {
@@ -26,6 +27,7 @@ impl Client {
         mechanism: Option<AuthMechanism>,
         server_guid: Option<OwnedGuid>,
         bus: bool,
+        impersonate_user_id: Option<usize>,
     ) -> Client {
         let mechanism = mechanism.unwrap_or_else(|| socket.read().auth_mechanism());
 
@@ -33,6 +35,10 @@ impl Client {
             common: Common::new(socket, mechanism),
             server_guid,
             bus,
+            user_id: match impersonate_user_id {
+                Some(value) => Ok(value.to_string()),
+                None => sasl_auth_id(),
+            },
         }
     }
 
@@ -80,11 +86,10 @@ impl Client {
     async fn authenticate(&mut self) -> Result<()> {
         let mechanism = self.common.mechanism();
         trace!("Trying {mechanism} mechanism");
+        let user_id = self.user_id.clone();
         let auth_cmd = match mechanism {
             AuthMechanism::Anonymous => Command::Auth(Some(mechanism), Some("zbus".into())),
-            AuthMechanism::External => {
-                Command::Auth(Some(mechanism), Some(sasl_auth_id()?.into_bytes()))
-            }
+            AuthMechanism::External => Command::Auth(Some(mechanism), Some(user_id?.into_bytes())),
         };
         self.common.write_command(auth_cmd).await?;
 
